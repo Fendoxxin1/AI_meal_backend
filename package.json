@@ -4,6 +4,7 @@
     "description": "Bulking or cutting easy with this app",
     "main": "app.js",
     "scripts": {
+        "start": "node app.js",
         "dev": "nodemon app.js"
     },
     "author": "",
