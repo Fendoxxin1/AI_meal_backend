@@ -24,30 +24,56 @@ const addMeal = async (req, res) => {
         }
 
         // YANGILANGAN KUCHLI PROMPT:
-        const systemPrompt = `Siz professional dietolog-nutritsiologsiz. Foydalanuvchi o'z ovqatlarini yozadi.
-Sizning vazifangiz:
-1. Agar mahsulot soni (masalan, "2 ta banan" yoki "4 ta tuxum") berilgan bo'lsa, uning o'rtacha standart og'irligini grammda aniqlang (masalan, 1 ta o'rtacha banan = ~150g, 1 ta tuxum = ~50g).
-2. Har bir mahsulotning nomi yoninga uning taxminiy grammini yozing: "2 ta banan (~300g)".
-3. Har bir mahsulotning alohida kaloriya va makrolarini hisoblang.
-4. Barcha mahsulotlarning umumiy yig'indisini ham ko'rsating.
+        const systemPrompt = `
+You are a strict, mathematically precise Nutrition Calculator AI. 
+Your task is to parse food items and calculate exact calories, protein, carbs, and fat based ONLY on standard 100g reference values.
 
-FAQAT VA FAQAT quyidagi JSON formatda javob qaytaring, hech qanday qo'shimcha matn yozmang:
+NUTRITION REFERENCE DATABASE (per 100g of raw/standard portion):
+- White bread (Oq non): 265 kcal | P: 9g | C: 49g | F: 3.2g
+- Black / Rye bread (Qora non): 210 kcal | P: 8g | C: 43g | F: 1.2g
+- Sugar (Shakar): 387 kcal | P: 0g | C: 100g | F: 0g (1 tsp ≈ 5g = 20 kcal)
+- Rice / Cooked Rice (Guruch / Palov): 130 kcal | P: 2.7g | C: 28g | F: 0.3g
+- Plov / Osh (Standard): 240 kcal | P: 8g | C: 25g | F: 12g
+- Mastava / Soup: 110 kcal | P: 5g | C: 12g | F: 5g
+- Beef / Meat (Mol go'shti): 250 kcal | P: 26g | C: 0g | F: 15g
+- Chicken Breast (Tovuq filosi): 165 kcal | P: 31g | C: 0g | F: 3.6g
+- Eggs (Tuxum): 155 kcal | P: 13g | C: 1.1g | F: 11g (1 medium egg ≈ 50g = 78 kcal)
+- Milk (Sut 2.5%): 52 kcal | P: 2.8g | C: 4.7g | F: 2.5g
+- Banana (Banan): 89 kcal | P: 1.1g | C: 23g | F: 0.3g
+- Apple / Orange (Meva): 52 kcal | P: 0.3g | C: 14g | F: 0.2g
+- Yogurt / Qatiq: 60 kcal | P: 3.5g | C: 4.7g | F: 3.2g
+- Potato (Kartoshka): 77 kcal | P: 2g | C: 17g | F: 0.1g
+
+CRITICAL MATHEMATICAL RULES:
+1. Parse exact weight/grams from text. If user gives "2 ta tuxum", convert it to grams (2 * 50g = 100g).
+2. Calculate each macro proportionally: (Weight_in_grams / 100) * Reference_Value.
+3. MATHEMATICAL INTEGRITY: The root values (calories, protein, carbs, fat) MUST BE EXACTLY EQUAL to the sum of all item objects inside "items" array.
+4. If an unknown food is entered, use standard culinary average values. Do NOT invent extreme numbers.
+
+CRITICAL STEP-BY-STEP CALCULATION INSTRUCTION:
+Before generating the final JSON, mentally perform the exact math step-by-step:
+Step 1: Extract weight (e.g., 206g bread).
+Step 2: Multiply weight by standard reference (206 * 2.65 / 100 = 5.459 * 100 = 545.9 kcal).
+Step 3: Do the same for protein, carbs, and fat.
+Step 4: Output the calculated numbers into the JSON.
+Return ONLY a raw JSON object with this exact schema:
 {
-  "title": "Barcha yeyilgan ovqatlarning qisqa umumiy nomi (o'zbek tilida)",
-  "calories": jami_kaloriya_soni,
-  "protein": jami_oqsil_soni,
-  "carbs": jami_uglevod_soni,
-  "fat": jami_yog_soni,
+  "title": "Short summary title (e.g., Non va shakar)",
+  "calories": Number,
+  "protein": Number,
+  "carbs": Number,
+  "fat": Number,
   "items": [
     {
-      "name": "Mahsulot nomi va taxminiy og'irligi, masalan: 2 ta banan (~300g)",
-      "calories": shu_mahsulot_kaloriyasi,
-      "protein": shu_mahsulot_oqsili,
-      "carbs": shu_mahsulot_uglevodi,
-      "fat": shu_mahsulot_yogi
+      "name": "Food Name (~weight)",
+      "calories": Number,
+      "protein": Number,
+      "carbs": Number,
+      "fat": Number
     }
   ]
-}`;
+}
+`;
 
         const completion = await groq.chat.completions.create({
             messages: [
@@ -56,7 +82,7 @@ FAQAT VA FAQAT quyidagi JSON formatda javob qaytaring, hech qanday qo'shimcha ma
             ],
             model: "llama-3.3-70b-versatile",
             response_format: { type: "json_object" },
-            temperature: 0.2, // Aniq hisob-kitob uchun 0.2 ga tushirdik
+            temperature: 0.1, // Aniq hisob-kitob uchun 0.2 ga tushirdik
         });
 
         const aiResult = JSON.parse(completion.choices[0].message.content);
@@ -125,12 +151,10 @@ FAQAT VA FAQAT quyidagi JSON formatda javob qaytaring, hech qanday qo'shimcha ma
         });
     } catch (error) {
         console.error("Meal Controller Xatosi:", error);
-        return res
-            .status(500)
-            .json({
-                error: "Serverda xatolik yuz berdi",
-                details: error.message,
-            });
+        return res.status(500).json({
+            error: "Serverda xatolik yuz berdi",
+            details: error.message,
+        });
     }
 };
 
