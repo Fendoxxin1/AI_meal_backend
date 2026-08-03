@@ -29,20 +29,21 @@ You are a strict, mathematically precise Nutrition Calculator AI.
 Your task is to parse food items and calculate exact calories, protein, carbs, and fat based ONLY on standard 100g reference values.
 
 NUTRITION REFERENCE DATABASE (per 100g of raw/standard portion):
-- White bread (Oq non): 265 kcal | P: 9g | C: 49g | F: 3.2g
-- Black / Rye bread (Qora non): 210 kcal | P: 8g | C: 43g | F: 1.2g
-- Sugar (Shakar): 387 kcal | P: 0g | C: 100g | F: 0g (1 tsp ≈ 5g = 20 kcal)
-- Rice / Cooked Rice (Guruch / Palov): 130 kcal | P: 2.7g | C: 28g | F: 0.3g
-- Plov / Osh (Standard): 240 kcal | P: 8g | C: 25g | F: 12g
-- Mastava / Soup: 110 kcal | P: 5g | C: 12g | F: 5g
-- Beef / Meat (Mol go'shti): 250 kcal | P: 26g | C: 0g | F: 15g
-- Chicken Breast (Tovuq filosi): 165 kcal | P: 31g | C: 0g | F: 3.6g
-- Eggs (Tuxum): 155 kcal | P: 13g | C: 1.1g | F: 11g (1 medium egg ≈ 50g = 78 kcal)
-- Milk (Sut 2.5%): 52 kcal | P: 2.8g | C: 4.7g | F: 2.5g
-- Banana (Banan): 89 kcal | P: 1.1g | C: 23g | F: 0.3g
-- Apple / Orange (Meva): 52 kcal | P: 0.3g | C: 14g | F: 0.2g
-- Yogurt / Qatiq: 60 kcal | P: 3.5g | C: 4.7g | F: 3.2g
-- Potato (Kartoshka): 77 kcal | P: 2g | C: 17g | F: 0.1g
+- White bread (Oq non): 265 kcal | Protein: 9g | Carbs: 49g | Fat: 3.2g
+- Black / Rye bread (Qora non): 210 kcal | Protein: 8g | Carbs: 43g | Fat: 1.2g
+- Sugar (Shakar): 387 kcal | Protein: 0g | Carbs: 100g | Fat: 0g 
+- Rice / Cooked Rice (Guruch / Palov): 130 kcal | Protein: 2.7g | Carbs: 28g | Fat: 0.3g
+- Plov / Osh (Standard): 240 kcal | Protein: 8g | Carbs: 25g | Fat: 12g
+- Mastava / Soup: 110 kcal | Protein: 5g | Carbs: 12g | Fat: 5g
+- Beef / Meat (Mol go'shti): 250 kcal | Protein: 26g | Carbs: 0g | Fat: 15g
+- Chicken Breast (Tovuq filosi): 165 kcal | Protein: 31g | Carbs: 0g | Fat: 3.6g
+- Eggs (Tuxum): 155 kcal | Protein: 13g | Carbs: 1.1g | Fat: 11g (1 medium egg ≈ 50g = 78 kcal)
+- Milk (Sut 2.5%): 52 kcal | Protein: 2.8g | Carbs: 4.7g | Fat: 2.5g
+- Banana (Banan): 89 kcal | Protein: 1.1g | Carbs: 23g | Fat: 0.3g
+- Apple / Orange (Meva): 52 kcal | Protein: 0.3g | Carbs: 14g | Fat: 0.2g
+- Yogurt / Qatiq: 60 kcal | Protein: 3.5g | Carbs: 4.7g | Fat: 3.2g
+- Potato (Kartoshka): 77 kcal | Protein: 2g | Carbs: 17g | Fat: 0.1g
+
 
 CRITICAL MATHEMATICAL RULES:
 1. Parse exact weight/grams from text. If user gives "2 ta tuxum", convert it to grams (2 * 50g = 100g).
@@ -65,14 +66,15 @@ Return ONLY a raw JSON object with this exact schema:
   "fat": Number,
   "items": [
     {
-      "name": "Food Name (~weight)",
-      "calories": Number,
-      "protein": Number,
-      "carbs": Number,
-      "fat": Number
-    }
-  ]
-}
+        "name": "Food Name (~weight)",
+        "calories": Number,
+        "protein": Number,
+        "carbs": Number,
+        "fat": Number
+        }
+        ]
+        }
+        "CRITICAL RULE: The gram weight of Carbohydrates, Protein, or Fat for any item can NEVER be greater than the item's total weight in grams!"
 `;
 
         const completion = await groq.chat.completions.create({
@@ -85,17 +87,39 @@ Return ONLY a raw JSON object with this exact schema:
             temperature: 0.1, // Aniq hisob-kitob uchun 0.2 ga tushirdik
         });
 
+        // 1. AI'dan kelgan javob (res)
         const aiResult = JSON.parse(completion.choices[0].message.content);
 
-        // Bazaga umumiy hisobni VA alohida items massivini ham saqlaymiz
-        const savedMeal = await Meal.create({
+        // 2. Ildiz qiymatlarini AI'ga ishonmasdan, items ichidan aniq matematik hisoblab olamiz:
+        const exactTotals = aiResult.items.reduce(
+            (acc, item) => ({
+                calories:
+                    Math.round(
+                        (acc.calories + (Number(item.calories) || 0)) * 10,
+                    ) / 10,
+                protein:
+                    Math.round(
+                        (acc.protein + (Number(item.protein) || 0)) * 10,
+                    ) / 10,
+                carbs:
+                    Math.round((acc.carbs + (Number(item.carbs) || 0)) * 10) /
+                    10,
+                fat: Math.round((acc.fat + (Number(item.fat) || 0)) * 10) / 10,
+            }),
+            { calories: 0, protein: 0, carbs: 0, fat: 0 },
+        );
+
+        // 3. Bazaga AI berganni emas, EXACT (aniq) hisoblangan qiymatni saqlaymiz:
+        const savedMeal = new Meal({
             title: aiResult.title,
-            calories: aiResult.calories,
-            protein: aiResult.protein,
-            carbs: aiResult.carbs,
-            fat: aiResult.fat,
-            items: aiResult.items || [], // <--- Alohida mahsulotlar ro'yxati
+            calories: exactTotals.calories, // <-- Aniq hisoblangan summani yozamiz
+            protein: exactTotals.protein,
+            carbs: exactTotals.carbs,
+            fat: exactTotals.fat,
+            items: aiResult.items,
         });
+
+        await savedMeal.save();
 
         // ... (Qolgan hisob-kitoblar, startOfDay, endOfDay va foizlar o'zgarishsiz qoladi)
 
