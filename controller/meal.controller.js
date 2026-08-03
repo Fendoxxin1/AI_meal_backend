@@ -51,6 +51,15 @@ CRITICAL MATHEMATICAL RULES:
 3. MATHEMATICAL INTEGRITY: The root values (calories, protein, carbs, fat) MUST BE EXACTLY EQUAL to the sum of all item objects inside "items" array.
 4. If an unknown food is entered, use standard culinary average values. Do NOT invent extreme numbers.
 
+JSON FORMAT RULES:
+1. Return ONLY valid JSON format.
+2. NEVER use mathematical expressions like addition (+) inside JSON values. Always evaluate the final sum mentally and write ONLY the final number (e.g., "calories": 584.6, NOT "calories": 545.9 + 38.7).
+3. The gram weight of Carbohydrates, Protein, or Fat can NEVER be greater than the item's total weight in grams.
+
+CRITICAL MATH AND JSON RULES:
+1. Always ROUND all calculated numbers (calories, protein, carbs, fat) to 1 decimal place or whole integers (e.g., write 101 or 101.1 instead of 101.14; write 6.6 instead of 6.592).
+2. Return ONLY valid JSON. NEVER use addition symbols (+) or mathematical expressions inside JSON values. Write ONLY the final calculated sum.
+
 CRITICAL STEP-BY-STEP CALCULATION INSTRUCTION:
 Before generating the final JSON, mentally perform the exact math step-by-step:
 Step 1: Extract weight (e.g., 206g bread).
@@ -74,7 +83,7 @@ Return ONLY a raw JSON object with this exact schema:
         }
         ]
         }
-        "CRITICAL RULE: The gram weight of Carbohydrates, Protein, or Fat for any item can NEVER be greater than the item's total weight in grams!"
+"CRITICAL RULE: The gram weight of Carbohydrates, Protein, or Fat for any item can NEVER be greater than the item's total weight in grams!"
 `;
 
         const completion = await groq.chat.completions.create({
