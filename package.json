@@ -1,0 +1,20 @@
+{
+    "name": "groq",
+    "version": "1.0.0",
+    "description": "Bulking or cutting easy with this app",
+    "main": "index.js",
+    "scripts": {
+        "dev": "nodemon app.js"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "cors": "^2.8.6",
+        "dotenv": "^17.4.2",
+        "express": "^5.2.1",
+        "groq-sdk": "^1.4.1",
+        "mongoose": "^9.9.1",
+        "swagger-jsdoc": "^6.3.0",
+        "swagger-ui-express": "^5.0.1"
+    }
+}
