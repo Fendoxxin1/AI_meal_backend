@@ -2,7 +2,7 @@
     "name": "groq",
     "version": "1.0.0",
     "description": "Bulking or cutting easy with this app",
-    "main": "index.js",
+    "main": "app.js",
     "scripts": {
         "dev": "nodemon app.js"
     },
